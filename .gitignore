@@ -1,0 +1,21 @@
+# Ambiente virtual
+venv/
+
+# Arquivos de cache do Python
+__pycache__/
+*.py[cod]
+
+# Dados grandes ou brutos
+data/raw/
+*.csv
+*.json
+
+# Configuração do VS Code
+.vscode/
+
+# Notebook com outputs salvos
+*.ipynb_checkpoints/
+
+# Arquivos temporarios
+*.log
+*.tmp
