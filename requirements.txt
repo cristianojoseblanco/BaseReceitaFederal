@@ -1,0 +1,29 @@
+# Manipulação e análise de dados
+pandas
+numpy
+tqdm
+
+# Download e extração de arquivos
+requests
+
+# Banco de dados (PostgreSQL)
+sqlalchemy
+psycopg2-binary
+
+# Notebook e ambiente de desenvolvimento
+jupyter
+jupyterlab
+ipykernel
+notebook
+
+# Visualização
+matplotlib
+seaborn
+
+# Estatística e modelos
+statsmodels
+lifelines
+hmmlearn
+
+# Interface Web para dashboard
+streamlit
