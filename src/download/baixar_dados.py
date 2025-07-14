@@ -57,9 +57,9 @@ def get_zip_urls_from_directory(directory_url):
         print(f"❌ Erro ao acessar o diretório {directory_url}: {e}")
         return []
 
-def baixar_arquivo(url, destino):
+def baixar_e_extrair_arquivo(url, destino):
     nome_arquivo = url.split("/")[-1]
-    caminho_completo = os.path.join(destino, nome_arquivo)
+    caminho_zip = os.path.join(destino, nome_arquivo)
 
     print(f"⬇️ Baixando {nome_arquivo}...")
 
@@ -68,7 +68,7 @@ def baixar_arquivo(url, destino):
         resposta.raise_for_status()
         tamanho_total = int(resposta.headers.get("content-length", 0))
 
-        with open(caminho_completo, "wb") as f, tqdm(
+        with open(caminho_zip, "wb") as f, tqdm(
             desc=nome_arquivo,
             total=tamanho_total,
             unit="B",
@@ -80,26 +80,24 @@ def baixar_arquivo(url, destino):
                 barra.update(len(dados))
 
         print(f"✅ Download de {nome_arquivo} concluído.")
-        return caminho_completo
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Erro ao baixar {nome_arquivo}: {e}")
-        return None
-
-def extrair_zip(caminho_zip, destino):
-    if not caminho_zip or not os.path.exists(caminho_zip):
-        print(f"❌ Arquivo ZIP não encontrado para extração: {caminho_zip}")
-        return
-
-    print(f"📦 Extraindo {caminho_zip}...")
-    try:
+        
+        # Extração
+        print(f"📦 Extraindo {nome_arquivo}...")
         with ZipFile(caminho_zip, 'r') as zip_ref:
             zip_ref.extractall(destino)
-        print("✅ Extração concluída.")
+        print(f"✅ Extraído: {nome_arquivo.replace('.zip', '')}")
+
+        os.remove(caminho_zip)
+        print(f"🗑️ Removido ZIP: {nome_arquivo}")
+
     except BadZipFile:
-        print(f"❌ Erro: O arquivo {caminho_zip} não é um arquivo ZIP válido ou está corrompido.")
-        os.remove(caminho_zip) # Remove o arquivo corrompido para tentar baixar novamente na próxima execução
+        print(f"❌ Erro: O arquivo {nome_arquivo} está corrompido.")
+        if os.path.exists(caminho_zip):
+            os.remove(caminho_zip)
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Erro ao baixar {nome_arquivo}: {e}")
     except Exception as e:
-        print(f"❌ Erro ao extrair {caminho_zip}: {e}")
+        print(f"❌ Erro inesperado com {nome_arquivo}: {e}")
 
 def main():
     os.makedirs(PASTA_DESTINO, exist_ok=True)
@@ -108,11 +106,9 @@ def main():
     if latest_dir:
         zip_urls = get_zip_urls_from_directory(latest_dir)
         if zip_urls:
-            print("\nIniciando download e extração dos arquivos ZIP...")
+            print("\n🚀 Iniciando download + extração automática dos arquivos ZIP...")
             for url in zip_urls:
-                caminho_zip = baixar_arquivo(url, PASTA_DESTINO)
-                if caminho_zip:
-                    extrair_zip(caminho_zip, PASTA_DESTINO)
+                baixar_e_extrair_arquivo(url, PASTA_DESTINO)
         else:
             print("Nenhum arquivo ZIP encontrado na pasta mais recente para download.")
     else:
@@ -120,4 +116,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
