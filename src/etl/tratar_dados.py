@@ -3,6 +3,7 @@ import pandas as pd
 
 PASTA_RAW = "data/raw"
 PASTA_PROCESSED = "data/processed"
+CHUNKSIZE = 50_000  # Ajuste conforme sua RAM
 
 PADROES_ARQUIVOS = {
     "Empresas": "EMPRECSV",
@@ -26,44 +27,41 @@ def encontrar_arquivos_por_padrao(pasta, padrao):
                 arquivos.append(caminho)
     return sorted(arquivos)
 
-def limpar_dataframe(df):
+def limpar_colunas(df):
     df.columns = [col.strip() for col in df.columns]
     df = df.loc[:, ~df.columns.duplicated()]
     return df
 
-def ler_e_processar(tipo, caminhos):
-    if not caminhos:
-        print(f"\n🔍 Processando tipo '{tipo}' (0 arquivos)...")
-        print(f"❌ Nenhum arquivo válido encontrado.")
-        return
-
-    print(f"\n🔍 Processando tipo '{tipo}' ({len(caminhos)} arquivos)...")
-    dataframes = []
+def processar_em_blocos(tipo, caminhos):
+    destino = os.path.join(PASTA_PROCESSED, f"{tipo.lower()}.csv")
+    primeiro_bloco = True
+    total_linhas = 0
 
     for caminho in caminhos:
+        print(f"📂 Lendo {os.path.basename(caminho)} em blocos...")
         try:
-            df = pd.read_csv(caminho, sep=';', encoding='latin1', dtype=str, low_memory=False)
-            df = limpar_dataframe(df)
-            dataframes.append(df)
-            print(f"✅ {os.path.basename(caminho)} lido com {len(df):,} linhas.")
+            for chunk in pd.read_csv(caminho, sep=';', encoding='latin1', dtype=str, chunksize=CHUNKSIZE, low_memory=False):
+                chunk = limpar_colunas(chunk)
+                chunk.to_csv(destino, mode='w' if primeiro_bloco else 'a', sep=';', index=False, header=primeiro_bloco, encoding='utf-8')
+                total_linhas += len(chunk)
+                primeiro_bloco = False
         except Exception as e:
-            print(f"❌ Erro ao ler {os.path.basename(caminho)}: {e}")
-
-    if dataframes:
-        df_final = pd.concat(dataframes, ignore_index=True)
-        nome_arquivo = os.path.join(PASTA_PROCESSED, f"{tipo.lower()}.csv")
-        df_final.to_csv(nome_arquivo, sep=';', index=False, encoding='utf-8')
-        print(f"💾 Arquivo salvo em: {nome_arquivo} ({len(df_final):,} linhas)")
+            print(f"❌ Erro em {caminho}: {e}")
+    
+    print(f"✅ {tipo} processado com {total_linhas:,} linhas.")
 
 def main():
-    print("🚀 Iniciando limpeza e padronização dos dados da Receita Federal...\n")
+    print("🚀 Iniciando processamento eficiente por blocos...\n")
     os.makedirs(PASTA_PROCESSED, exist_ok=True)
 
     for tipo, padrao in PADROES_ARQUIVOS.items():
         caminhos = encontrar_arquivos_por_padrao(PASTA_RAW, padrao)
-        ler_e_processar(tipo, caminhos)
+        if caminhos:
+            processar_em_blocos(tipo, caminhos)
+        else:
+            print(f"⚠️ Nenhum arquivo de {tipo} encontrado.")
 
-    print("\n✅ Processamento completo. Arquivos salvos em 'data/processed/'\n")
+    print("\n✅ Todos os dados foram processados e salvos em 'data/processed/'\n")
 
 if __name__ == "__main__":
     main()
