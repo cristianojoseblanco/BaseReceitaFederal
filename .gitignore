@@ -19,3 +19,7 @@ data/raw/
 # Arquivos temporarios
 *.log
 *.tmp
+
+# Informações do banco de dados
+.env
+
